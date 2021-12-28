@@ -9,7 +9,24 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Libraries
+
+```{r,message=FALSE, warning=FALSE}
+library(tidyverse)
+library(tidygraph)
+library(igraph)
+library(ggplot2)
+library(ggraph)
+```
+
 ## Daten
+```{r}
+#Use read_delim instead of read_csv to guess corect column type
+data = read_delim("data/house_sales.csv", delim=",")
+data = data %>% as.tibble()
+str(data)
+```
+
 
 ## Datenanalyse
 
