@@ -1,4 +1,4 @@
-# DS_Predicting_House_Prices
+# Data Scienec Project: Predicting House Prices
 
 ## Projektbeurteilung
 
