@@ -1,0 +1,18 @@
+---
+title: "Predicting House Prices"
+author: "Oliver Tomondy, Friedrich Winkelbauer"
+date: "28/12/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Daten
+
+## Datenanalyse
+
+## Modelierung
+
+## ...
