@@ -9,27 +9,167 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Ziele
+
+-   Das Ziel dieser Arbiet is es, einen Datensatz mit Seattle Häuser zu analysieren und Preis der Häuser in der Stadt Seattle vorherzusagen
+
+-   ...
+
+-   ...
+
 # Libraries
 
 ```{r,message=FALSE, warning=FALSE}
+#install.packages("corrplot")
+library(corrplot)
 library(tidyverse)
 library(tidygraph)
 library(igraph)
 library(ggplot2)
 library(ggraph)
+
 ```
 
-## Daten
-```{r}
-#Use read_delim instead of read_csv to guess corect column type
+# Datenaufbereitung
+
+Wir lesen die Daten ein und verwenden dafür read_delim anstatt read_csv um den Spaltentyp zu schätzen.
+
+```{r message=FALSE}
 data = read_delim("data/house_sales.csv", delim=",")
-data = data %>% as.tibble()
-str(data)
+data = data %>% as_tibble()
 ```
 
+Wir entfernen einen Ausreißer, der wahrscheinlich nur eine Fehleingabe war.
 
-## Datenanalyse
+```{r}
+data = data %>% subset(bedrooms != 33)
+```
 
-## Modelierung
+\newpage
+
+# Explorative Datenanalyse
+
+Unsere Datensatz enthält Informationen über 21.613 Häuser in der US-amerikanischen Stadt Seattle. Jedes Haus ist durch eine ID gekennzeichnet und ist durch 19 Merkmale beschrieben. Unten findet man einen Überblick dieser Merkmale.
+
+```{r}
+summary(data)
+```
+
+-   Der durschnittliche Preis eines Häuses im Datensatz beträgt 540.084 US-Dollar.
+
+-   Die Wohnfläche beträgt durchschnittlich 2080 Quadraftfuß, was in ca. 193 Quadratmeter ist.
+
+-   ...
+
+-   ....
+
+Schauen wir uns nun weitere Statistiken graphisch an:
+
+### Zustand der Häuser nach Baujahr
+
+```{r out.width="60%", fig.align="center"}
+data %>% 
+  ggplot(aes(x=yr_built, fill=as.factor(condition))) +
+  geom_histogram() + 
+  ggtitle("Der Zustand der Häuser nach Baujahr") + 
+  xlab("Baujahr") + ylab("Anzahl") + 
+  scale_fill_brewer(palette = "Dark2") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+-   todo
+
+\newpage
+
+------------------------------------------------------------------------
+
+### Preis der Häuser nach Baujahr und Zustand
+
+```{r out.width="60%", fig.align="center"}
+data %>% 
+  ggplot(aes(x=yr_built,y=price, colour =as.factor(condition))) +
+  geom_point() + 
+  ggtitle("Der Preis der Häuser nach Baujahr und Zustand") + 
+  xlab("Baujahr") + ylab("Preis") + 
+  scale_fill_brewer(palette = "Dark2") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+todo
+
+\newpage
+
+------------------------------------------------------------------------
+
+### Preis der Häuser nach Wohnfläche und Zustand
+
+```{r out.width="60%", fig.align="center"}
+data %>% 
+  ggplot(aes(x=sqft_living,y=price, colour =as.factor(condition))) +
+  geom_point() + 
+  ggtitle("Der Preis der Häuser nach Wohnfläche und Zustand") + 
+  xlab("Baujahr") + 
+  ylab("Preis") + 
+  scale_fill_brewer(palette = "Dark2") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ylim(100000, 5000000) + 
+  xlim(0, 8000)
+```
+
+-   fds
+
+\newpage
+
+------------------------------------------------------------------------
+
+### Verteilung der Preise nach Anzahl der Stockwerke
+
+```{r out.width="60%", fig.align="center"}
+data %>% 
+  ggplot(aes(x=as.factor(floors), y=price)) +
+  geom_boxplot(color="darkorange", fill="orange", alpha=0.2) + 
+  ylim(100000, 5000000) + 
+  ggtitle("Verteilung der Preise nach Anzahl der Stockwerke") + 
+  xlab("Anzahl der Zimmer") + ylab("Preis") + 
+  scale_colour_brewer(palette = "Dark2") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+\newpage
+
+------------------------------------------------------------------------
+
+### Verteilung der Preise nach Anzahl der Zimmer
+
+```{r out.width="60%", fig.align="center", message=FALSE, warning=FALSE}
+data %>% 
+  ggplot(aes(x=as.factor(bedrooms), y=price)) +
+  geom_boxplot(color="darkorange", fill="orange", alpha=0.2) + 
+  ylim(100000, 5000000) + 
+  ggtitle("Verteilung der Preise nach Anzahl der Zimmer") + 
+  xlab("Anzahl der Zimmer") + ylab("Preis") + 
+  scale_colour_brewer(palette = "Dark2") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+-   td
+
+\newpage
+
+------------------------------------------------------------------------
+
+### Korrelation der Merkmale mit Hauspreis
+
+```{r}
+datacor = data %>% select(-c("id", "date"))
+corrplot(cor(datacor$price, datacor), method="number",diag = FALSE, tl.cex = 0.8,
+   number.cex=0.75, cl.pos = "n", title="Korrelation der Merkmale mit dem Preis")
+
+```
+
+\newpage
+
+# Modelierung
 
 ## ...
