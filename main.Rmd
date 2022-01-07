@@ -15,24 +15,30 @@ knitr::opts_chunk$set(echo = TRUE)
 
 -   ...
 
--   ...
+-   
 
 # Libraries
 
 ```{r,message=FALSE, warning=FALSE}
 #install.packages("corrplot")
+#install.packages("plumber","rjson")
+##install.packages(c("cowplot", "googleway", "ggplot2", "ggrepel", 
+##"ggspatial", "libwgeom", "sf", "rnaturalearth", "rnaturalearthdata"))
+library(zoo)
 library(corrplot)
 library(tidyverse)
 library(tidygraph)
 library(igraph)
 library(ggplot2)
 library(ggraph)
+library(rnaturalearth)
+library(rnaturalearthdata)
 
 ```
 
 # Datenaufbereitung
 
-Wir lesen die Daten ein und verwenden dafür read_delim anstatt read_csv um den Spaltentyp zu schätzen.
+Zuerst lesen wir die Daten ein. Wir verwenden dafür read_delim anstatt read_csv um den Spaltentyp zu schätzen.
 
 ```{r message=FALSE}
 data = read_delim("data/house_sales.csv", delim=",")
@@ -55,19 +61,25 @@ Unsere Datensatz enthält Informationen über 21.613 Häuser in der US-amerikani
 summary(data)
 ```
 
--   Der durschnittliche Preis eines Häuses im Datensatz beträgt 540.084 US-Dollar.
+\newpage
 
--   Die Wohnfläche beträgt durchschnittlich 2080 Quadraftfuß, was in ca. 193 Quadratmeter ist.
+-   Der durschnittliche Preis eines Häuses im Datensatz beträgt 540.084 US-Dollar. Das teuerste Haus kostet 7.7 Millionen US-Dollar.
 
--   ...
+-   Die Wohnfläche beträgt durchschnittlich 2.080 Quadraftfuß, was in ca. 193 Quadratmeter ist.
 
--   ....
+-   Die Median Größe eines Grundstücks beträgt 7.618 Quadratfuß, wobei das größte Gründstücl 1.651.359 Quadratfuß hat.
+
+-   Die Häuser in unserem Datensatz haben außerdem durchscnittlich 3.4 Zimmer und 2.25 Badezimmer.
+
+-   Von Mehr als 20 Tausend Häuser liegen nur `r nrow(data %>% subset(waterfront == 1))` am Wasser.
 
 Schauen wir uns nun weitere Statistiken graphisch an:
 
-### Zustand der Häuser nach Baujahr
+\newpage
 
-```{r out.width="60%", fig.align="center"}
+### 1. Zustand der Häuser nach Baujahr
+
+```{r out.width="75%", fig.align="center"}
 data %>% 
   ggplot(aes(x=yr_built, fill=as.factor(condition))) +
   geom_histogram() + 
@@ -77,38 +89,40 @@ data %>%
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
--   todo
+-   Auf dem Diagramm ist zu sehen, dass
 
 \newpage
 
 ------------------------------------------------------------------------
 
-### Preis der Häuser nach Baujahr und Zustand
+### 2. Durschnittlicher Preis der Häuser nach Baujahr
 
-```{r out.width="60%", fig.align="center"}
+```{r out.width="75%", fig.align="center"}
 data %>% 
-  ggplot(aes(x=yr_built,y=price, colour =as.factor(condition))) +
-  geom_point() + 
-  ggtitle("Der Preis der Häuser nach Baujahr und Zustand") + 
+  ggplot(aes(x=yr_built,y=price)) +
+  geom_line(stat = "summary", fun = "mean", color="orange") + 
+  ggtitle("Durschnittlicher Preis der Häuser nach Baujahr") + 
   xlab("Baujahr") + ylab("Preis") + 
   scale_fill_brewer(palette = "Dark2") +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-todo
+-   Auf dem Diagramm sehen wir den durschnittlichen Verkaufspreis der Häuser nach dem Baujahr.
+
+-   Aufällig ist, dass Häuser,die zwischen 1900 und 1930 gebaut wurden, durschnittlich einen höheren Preis haben als Häuser die zwischen den Jahren 1945 und 1980 gebaut wurden. Erst ganz junge Häuser, die am Ende des 20. Jahrhunderts und am Anfang des 21. Jahrhunderts gebaut wurden, sind wieder teuerer.
 
 \newpage
 
 ------------------------------------------------------------------------
 
-### Preis der Häuser nach Wohnfläche und Zustand
+### 3. Preis der Häuser nach Wohnfläche und Zustand
 
-```{r out.width="60%", fig.align="center"}
+```{r out.width="75%", fig.align="center"}
 data %>% 
   ggplot(aes(x=sqft_living,y=price, colour =as.factor(condition))) +
-  geom_point() + 
+  geom_point(size=0.8) + 
   ggtitle("Der Preis der Häuser nach Wohnfläche und Zustand") + 
-  xlab("Baujahr") + 
+  xlab("Wohnfläche") + 
   ylab("Preis") + 
   scale_fill_brewer(palette = "Dark2") +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -116,32 +130,40 @@ data %>%
   xlim(0, 8000)
 ```
 
--   fds
+-   Das Diagramm zeigt den Preis der Häuser nach Wohnfläche und Zustand.
+-   Es lässt sich deutlich erkennen, dass mit steigender Wohnfläche auch der Preis für ein Haus steigt.
+-   Leider kann man nicht deutlich sehen, ob der Zustand auch eine Rolle beim Preis des Hauses spielt. Es ist lediglich zu beobachten, dass die Mehrheit der Häuser in einem mittleren Zustand sind.
 
 \newpage
 
 ------------------------------------------------------------------------
 
-### Verteilung der Preise nach Anzahl der Stockwerke
+### 4. Verteilung der Preise nach Anzahl der Stockwerke
 
-```{r out.width="60%", fig.align="center"}
+```{r out.width="75%", fig.align="center"}
 data %>% 
   ggplot(aes(x=as.factor(floors), y=price)) +
   geom_boxplot(color="darkorange", fill="orange", alpha=0.2) + 
   ylim(100000, 5000000) + 
   ggtitle("Verteilung der Preise nach Anzahl der Stockwerke") + 
-  xlab("Anzahl der Zimmer") + ylab("Preis") + 
+  xlab("Anzahl der Stockwerke") + ylab("Preis") + 
   scale_colour_brewer(palette = "Dark2") +
   theme(plot.title = element_text(hjust = 0.5))
 ```
+
+-   Das Diagramm zeigt die Verteilung der Hauspreise nach der Anzahl der Stockwerke.
+
+-   Es lässt sich erkennen, dass je mehr Stockwerke das Haus hat, desto höher der Preis ist. Interessenterweise gilt dieser Trend nur bis zu 2.5 Stockwerken. Wenn ein Haus 3 oder 3.5 Stockwerke hat, ist der Preis durschnittlich niedriger als bei Häusern mit nur 2.5 Stockwerken.
+
+-   Vielleicht lässt sich eine deutlichere Tendenz bei der Anzahl der Zimmer festellen.
 
 \newpage
 
 ------------------------------------------------------------------------
 
-### Verteilung der Preise nach Anzahl der Zimmer
+### 5. Verteilung der Preise nach Anzahl der Zimmer
 
-```{r out.width="60%", fig.align="center", message=FALSE, warning=FALSE}
+```{r out.width="75%", fig.align="center", message=FALSE, warning=FALSE}
 data %>% 
   ggplot(aes(x=as.factor(bedrooms), y=price)) +
   geom_boxplot(color="darkorange", fill="orange", alpha=0.2) + 
@@ -153,16 +175,39 @@ data %>%
 
 ```
 
--   td
+-   Auf der Grafik können wir die Verteilung der Hauspreise nach der Anzahl der Zimmer beobachten.
+-   Es gibt einen klaren aufsteigenden Trend: Also je mehr Zimmer ein Haus hat, desto mehr wird er wahrscheinlich kosten.
 
 \newpage
 
+### 6. Preis der Häuser nach Lage
+
+```{r out.width="75%", fig.align="center"}
+data = data %>% mutate(pricecat = case_when(
+  price < 321950  ~ 'low',
+  price < 645000  ~ 'mid',
+  price > 645000  ~ 'high'
+))
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+ggplot(data = world) +
+    geom_sf() +
+    geom_point(data = data, aes(x = long, y = lat, color=as.factor(pricecat)), size = 0.5, 
+     shape = 23, fill = "darkred") +
+    ggtitle("Preis der Häuser nach Lage")+
+    coord_sf(xlim = c(-122.5, -121.7), ylim = c(47.20, 47.8))
+```
+
+-   
+
+-   
+
 ------------------------------------------------------------------------
 
-### Korrelation der Merkmale mit Hauspreis
+### 7. Korrelation der einzelnen Merkmale mit Preis
 
-```{r}
-datacor = data %>% select(-c("id", "date"))
+```{r out.width="75%", fig.align="center"}
+datacor = data %>% select(-c("id", "date", "pricecat"))
 corrplot(cor(datacor$price, datacor), method="number",diag = FALSE, tl.cex = 0.8,
    number.cex=0.75, cl.pos = "n", title="Korrelation der Merkmale mit dem Preis")
 
