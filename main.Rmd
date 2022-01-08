@@ -2,7 +2,11 @@
 title: "Predicting House Prices"
 author: "Oliver Tomondy, Friedrich Winkelbauer"
 date: "28/12/2021"
-output: pdf_document
+output: 
+  pdf_document:
+    toc: yes
+    toc_depth: 2
+    number_sections: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -11,11 +15,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Ziele
 
--   Das Ziel dieser Arbiet is es, einen Datensatz mit Seattle Häuser zu analysieren und Preis der Häuser in der Stadt Seattle vorherzusagen
+-   Das Ziel dieser Arbiet is es, einen Datensatz mit Seattle Häuser zu analysieren und mit verschiedenen Machine Learning Modellen den Preis der Häuser in der Stadt Seattle vorherzusagen.
 
--   ...
-
--   
+-   Anschließend wird das beste Modell auch als Webservice deployed.
 
 # Libraries
 
@@ -65,19 +67,21 @@ summary(data)
 
 -   Der durschnittliche Preis eines Häuses im Datensatz beträgt 540.084 US-Dollar. Das teuerste Haus kostet 7.7 Millionen US-Dollar.
 
--   Die Wohnfläche beträgt durchschnittlich 2.080 Quadraftfuß, was in ca. 193 Quadratmeter ist.
+-   Die Wohnfläche beträgt durchschnittlich 2.080 Quadraftfuß, was ca. 193 Quadratmeter ist.
 
--   Die Median Größe eines Grundstücks beträgt 7.618 Quadratfuß, wobei das größte Gründstücl 1.651.359 Quadratfuß hat.
+-   Die Median Größe eines Grundstücks beträgt 7.618 Quadratfuß, wobei das größte Gründstück 1.651.359 Quadratfuß hat.
 
--   Die Häuser in unserem Datensatz haben außerdem durchscnittlich 3.4 Zimmer und 2.25 Badezimmer.
+-   Die Häuser in unserem Datensatz haben außerdem durchschnittlich 3.4 Zimmer und 2.25 Badezimmer.
 
 -   Von Mehr als 20 Tausend Häuser liegen nur `r nrow(data %>% subset(waterfront == 1))` am Wasser.
 
-Schauen wir uns nun weitere Statistiken graphisch an:
+-   Das älterste Haus wurde im Jahr 1900 gebaut. Der durschnittliche Alter der Häuser im Datensatz beträgt `r 2021 - 1971`
+
+Schauen wir uns nun weitere Statistiken graphisch an. Da das Ziel dieser Arbeit die Erstellung mehrerer Modelle für die Vorhersage der Hauspreise ist, wird der Fokus dieser visuellen Datenanalyse auf der Variable **Preis** liegen.
 
 \newpage
 
-### 1. Zustand der Häuser nach Baujahr
+### Zustand der Häuser nach Baujahr
 
 ```{r out.width="75%", fig.align="center"}
 data %>% 
@@ -93,14 +97,38 @@ data %>%
 
 \newpage
 
+### Verteilung der Preise
+
+```{r out.width="75%", fig.align="center"}
+data %>% 
+  ggplot(aes(x=price)) + 
+  geom_line(stat="density", color="darkblue") +
+  xlim(50000, 3000000) + 
+  ggtitle("Verteilung der Preise") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+-   Auf dem Diagramm sehen wir die Verteilung der Preise für Häuser in unserem Datensatz.
+
+-   Die Verteilung folgt einer ungefähren F-Verteilung.
+
+-   Die Mehrheit der Häuser kostet zwischen 320.000 und 645.000 US-Dollar.
+
+    ```{r}
+    summary(data$price)
+    ```
+
+    \newpage
+
 ------------------------------------------------------------------------
 
-### 2. Durschnittlicher Preis der Häuser nach Baujahr
+### Durschnittlicher Preis der Häuser nach Baujahr
 
 ```{r out.width="75%", fig.align="center"}
 data %>% 
   ggplot(aes(x=yr_built,y=price)) +
-  geom_line(stat = "summary", fun = "mean", color="orange") + 
+  geom_line(stat = "summary", fun = "mean", color="darkblue") + 
   ggtitle("Durschnittlicher Preis der Häuser nach Baujahr") + 
   xlab("Baujahr") + ylab("Preis") + 
   scale_fill_brewer(palette = "Dark2") +
@@ -115,7 +143,7 @@ data %>%
 
 ------------------------------------------------------------------------
 
-### 3. Preis der Häuser nach Wohnfläche und Zustand
+### Preis der Häuser nach Wohnfläche und Zustand
 
 ```{r out.width="75%", fig.align="center"}
 data %>% 
@@ -138,12 +166,12 @@ data %>%
 
 ------------------------------------------------------------------------
 
-### 4. Verteilung der Preise nach Anzahl der Stockwerke
+### Verteilung der Preise nach Anzahl der Stockwerke
 
 ```{r out.width="75%", fig.align="center"}
 data %>% 
   ggplot(aes(x=as.factor(floors), y=price)) +
-  geom_boxplot(color="darkorange", fill="orange", alpha=0.2) + 
+  geom_boxplot(color="darkblue", fill="darkblue", alpha=0.2) + 
   ylim(100000, 5000000) + 
   ggtitle("Verteilung der Preise nach Anzahl der Stockwerke") + 
   xlab("Anzahl der Stockwerke") + ylab("Preis") + 
@@ -161,12 +189,12 @@ data %>%
 
 ------------------------------------------------------------------------
 
-### 5. Verteilung der Preise nach Anzahl der Zimmer
+### Verteilung der Preise nach Anzahl der Zimmer
 
 ```{r out.width="75%", fig.align="center", message=FALSE, warning=FALSE}
 data %>% 
   ggplot(aes(x=as.factor(bedrooms), y=price)) +
-  geom_boxplot(color="darkorange", fill="orange", alpha=0.2) + 
+  geom_boxplot(color="darkblue", fill="darkblue", alpha=0.2) + 
   ylim(100000, 5000000) + 
   ggtitle("Verteilung der Preise nach Anzahl der Zimmer") + 
   xlab("Anzahl der Zimmer") + ylab("Preis") + 
@@ -180,36 +208,39 @@ data %>%
 
 \newpage
 
-### 6. Preis der Häuser nach Lage
+### Preis der Häuser nach Lage
 
 ```{r out.width="75%", fig.align="center"}
 data = data %>% mutate(pricecat = case_when(
-  price < 321950  ~ 'low',
-  price < 645000  ~ 'mid',
-  price > 645000  ~ 'high'
+  price < 321950  ~ 'low 0-25 percentile',
+  price < 645000  ~ 'mid 25-75 percentile',
+  price > 645000  ~ 'high 75-100 percentile'
 ))
 
 world <- ne_countries(scale = "medium", returnclass = "sf")
 ggplot(data = world) +
     geom_sf() +
-    geom_point(data = data, aes(x = long, y = lat, color=as.factor(pricecat)), size = 0.5, 
+    geom_point(data = data, aes(x = long, y = lat, col=as.factor(pricecat)), size = 0.5, 
      shape = 23, fill = "darkred") +
     ggtitle("Preis der Häuser nach Lage")+
-    coord_sf(xlim = c(-122.5, -121.7), ylim = c(47.20, 47.8))
+    coord_sf(xlim = c(-122.5, -121.7), ylim = c(47.20, 47.8)) + 
+   labs(color="Preisklasse")
 ```
 
--   
+-   Auf der geograpfischen Karte können wir die Lage der Häuser im Datensatz sehen, gefärbt nach Preisklasse.
 
--   
+-   Wir können beobachten, dass die teuersten Häuser (rot) näher zum Stadtzentrum liegen, als billigere Häuser (grün). Häuser, die preismäßig in der Mitte liegen (blaue), sind in der Stadt ungefähr regelmäßig verteilt.
+
+\newpage
 
 ------------------------------------------------------------------------
 
-### 7. Korrelation der einzelnen Merkmale mit Preis
+### Korrelation der einzelnen Merkmale mit Preis
 
 ```{r out.width="75%", fig.align="center"}
 datacor = data %>% select(-c("id", "date", "pricecat"))
-corrplot(cor(datacor$price, datacor), method="number",diag = FALSE, tl.cex = 0.8,
-   number.cex=0.75, cl.pos = "n", title="Korrelation der Merkmale mit dem Preis")
+corrplot(cor(datacor$price, datacor), method="number",diag = FALSE, tl.cex = 1,
+   number.cex=0.75, cl.pos = "n")
 
 ```
 
