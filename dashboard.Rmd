@@ -1,0 +1,73 @@
+---
+title: "Dashboard House Prices"
+author: "Olvicer Tomondy, Friedrich Winkelbauer"
+output:
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(flexdashboard)
+library(ggplot2)
+library(DT)
+library(plotly)
+library(dplyr)
+```
+
+# Seite 1
+<h1> Aufgabe und Daten </h1>
+
+<h3>Aufgabe</h3>
+  
+  Für alle Projekte sind grundsätzlich alle Data Science-Phasen vorgesehen:
+      
+  Datenaufbereitung und Explorative Datenanalyse, speziell Visualisierung [20%]
+      
+  Modellierung (Klassifikation oder Regression) mit zumindest 3 Methoden, inkl. Parameter Tuning und Benchmarking [30%]
+      
+  Deployment des besten Modells mittels Webservice (und Webservice Test) [10%]
+      
+  Kurzpräsentation des Projekts/der Ergebnisse mittels Dashboards [10%]
+      
+  Zwei Extra-Features - zB neue Methoden, interaktive Visualisierungen [20%]
+      
+  Dokumentation und Einhaltung der Projekt-Richtlinien [10%]
+    
+<h3>Übersicht:</h3>
+  
+<h4> Seite 1: Aufgabe und Übersicht </h4>
+  
+<h4> Seite 2: Methoden und Ergebnis </h4>
+
+
+# Seite 2
+<h1> Daten und Datenaufbereitung </h1>
+  
+Während der explorativen Datenanalyse wurden einige Datensätze gefunden, die nicht für die Analyse geeignet waren.
+  
+1. Es wurde ein Datensatz mit unnatürlich hoher Anzahl an Zimmer (33) und nicht dazu passendem Preis entfernt, da es sich höchstwahrscheinlich um einen Eingabefehler handelt.
+  
+2.Es wurde eine Korrelationsanalyse mittels einer Grafik durchgeführt, anhand derer einige Spalten verworfen wurden, da sie Kopien anderer Spalten darstellen oder nur sehr geringen Beitrag zur Erklärung von 'price' leisten: 'id, date, condition, yr_built, yr_renovated, zipcode, long, lat, sqft_living15, sqft_lot, sqft_lot15'
+  
+
+Die Daten wuirden im nächsten Schritt in Trainings- und Testdaten unterteilt. Danach wurden 3 Modelle erstellt, die den Preis der Häuser anhand der anderen Variablen hervorsagen sollen. Es wurde ein Lineares-Regressionsmodell, ein Random-Forest-Modell und ein Neurales Netz verwendet. Als zusätzliche Features wurden zusätzlich eine Poisson Regression sowie eine Regression mittels Support Vector Machine (SVM) durchgeührt.
+
+Anhand der Testdaten wurde der Root Mean Square Error (Wurzel des erwarteten quadratischen Abstands) verglichen.
+  
+Das beste Modell anhand des RMSE ist für diesen Datensatz das Random-Forest-Modell. Trotzdem muss dazu gesagt werden, dass wegen des sehr hohen RSMEs alle drei Modelle nicht als besonders gut einzustufen sind:
+
+### Regressionsergebnisse aus dem Training {data-width=275}
+                                  RMSE
+-----------------------------  -------                                 
+Random Forest                   218043.6
+Support Vector Machine          237218.9
+Lineare Regression              238345.5
+Poisson Regression              653069.0
+Neural Network                  653079.1
+-----------------------------  ------- 
+
+
+
+

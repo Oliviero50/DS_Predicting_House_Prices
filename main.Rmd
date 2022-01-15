@@ -26,15 +26,19 @@ knitr::opts_chunk$set(echo = TRUE)
 #install.packages("plumber","rjson")
 ##install.packages(c("cowplot", "googleway", "ggplot2", "ggrepel", 
 ##"ggspatial", "libwgeom", "sf", "rnaturalearth", "rnaturalearthdata"))
-library(zoo)
-library(corrplot)
-library(tidyverse)
-library(tidygraph)
-library(igraph)
-library(ggplot2)
-library(ggraph)
-library(rnaturalearth)
-library(rnaturalearthdata)
+library(zoo, quietly = TRUE)
+library(corrplot, quietly = TRUE)
+library(tidyverse, quietly = TRUE)
+library(tidygraph, quietly = TRUE)
+library(igraph, quietly = TRUE)
+library(ggplot2, quietly = TRUE)
+library(ggraph, quietly = TRUE)
+library(rnaturalearth, quietly = TRUE)
+library(rnaturalearthdata, quietly = TRUE)
+library(caret, quietly = TRUE)
+library(randomForest, quietly = TRUE)
+library(nnet, quietly = TRUE)
+library(e1071, quietly = TRUE)
 
 ```
 
@@ -247,5 +251,117 @@ corrplot(cor(datacor$price, datacor), method="number",diag = FALSE, tl.cex = 1,
 \newpage
 
 # Modelierung
+
+Zuerst wird ein fester Seed gesetzt, sodass die Ergebnisse gleich bleiben.
+
+```{r}
+set.seed(3000)
+```
+
+```{r}
+data = data %>% select(-c(id,date,condition,sqft_living15,sqft_lot15,zipcode,lat,long,pricecat,sqft_lot,condition,yr_built,yr_renovated))
+data
+```
+
+
+
+Die Daten werden zuerst in Test- und Trainingsdaten aufgeteilt.
+
+```{r}
+part = createDataPartition(data$price, times = 2, p = 2/3)
+train = data[part$Resample1,]
+test  = data[-part$Resample1,]
+train
+```
+ 
+
+Die Test- und Trainingsdaten werden abgespeichert.
+
+```{r}
+write.table(train, 
+            file = "data/train.csv", 
+            row.names = FALSE)
+write.table(test, 
+            file = "data/test.csv", 
+            row.names = FALSE)
+```
+
+
+Das erste Modell, das verwendet wird, ist eine lineare Regression. Die Funktion RMSE berechnet den Root Mean Square Error, und liefert damit die Vergleichbarkeit der Güte des Modells im Vergleich zu den anderen Varianten.
+
+```{r}
+RMSE = function(true, pred) {
+    ret <- sqrt(crossprod(true - pred)/length(pred))
+    cat("RMSE: ", round(ret, 2))
+    ret
+}
+model_r_linearModel = lm(price ~ . , data = train)
+pred_r_linearModel = predict(model_r_linearModel, test)
+stats_r_linearModel = RMSE(test$price, pred_r_linearModel)
+```
+
+
+Die zweite Methode ist ein Random Forest:
+
+```{r}
+model_r_randomForest = randomForest(price ~ ., data = train)
+pred_r_randomForest = predict(model_r_randomForest, test)
+stats_r_randomForest = RMSE(test$price, pred_r_randomForest)
+```
+
+Das dritte Modell ist ein Neural Network:
+
+```{r}
+model_r_nnet = nnet(price ~ ., data = train, 
+                    size = 100, MaxNWts = 10000, trace = FALSE, maxit = 150)
+pred_r_nnet = predict(model_r_nnet, test)
+stats_r_nnet = RMSE(test$price, pred_r_nnet)
+```
+
+Als zusätzliche Features werden außerdem eine Poison-Regression als auch die Regression mittels Support Vector Machine (SVM) durchgeührt. Poisson-Regression:
+
+```{r}
+model_r_poissonReg = glm(price ~ ., data = train, family = poisson)
+pred_r_poissonReg = predict(model_r_poissonReg, test)
+stats_r_poissonReg= RMSE(test$price, pred_r_poissonReg)
+```
+
+SVM-regression:
+
+```{r}
+model_r_svm = svm(price ~ ., data = train)
+pred_r_svm = predict(model_r_svm, test)
+stats_r_svm = RMSE(test$price, pred_r_svm)
+```
+
+
+
+Vergleich der Modelle mittels RMSE-Werten:
+
+```{r}
+res = t(t(sort(c(`Lineare Regression` = stats_r_linearModel,
+               `Poisson-Regression` = stats_r_poissonReg,
+               `Support Vector Machine` = stats_r_svm,
+               `Random Forest` = stats_r_randomForest,
+               `Neural Network` = stats_r_nnet))))
+colnames(res) = "RMSE"
+round(res, 3)
+```
+
+Alle Modelle weisen einen sehr hohen RMSE auf und sind daher eigentlich ungeeignet, um sichere/gute Vorhesagen zu treffen. Unter der Annahme, dass nur die hier gezeigten Methoden und Modelle zur Verfügung stehen, ist das beste Modell: `r rownames(res)[1]`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## ...
