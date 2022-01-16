@@ -39,11 +39,7 @@ library(caret, quietly = TRUE)
 library(randomForest, quietly = TRUE)
 library(nnet, quietly = TRUE)
 library(e1071, quietly = TRUE)
-<<<<<<< HEAD
 library(gbm, quietly = TRUE)
-=======
-library(rcompanion)
->>>>>>> 0c941045f7c9d26943453b669473cb0e42bc79c7
 ```
 
 # Datenaufbereitung
@@ -303,43 +299,28 @@ data
  
 Die Daten werden im nächsten Schritt skaliert.
 
-<<<<<<< HEAD
+
 ```{r}
 data = as_tibble(scale(data))
 ```
  
 
-Die Daten werden jetzt in Test- und Trainingsdaten aufgeteilt.
-=======
+
 Die Daten werden zuerst in Test- und Trainingsdaten aufgeteilt.
->>>>>>> 0c941045f7c9d26943453b669473cb0e42bc79c7
+
 
 ```{r}
 part = createDataPartition(data$price, times = 2, p = 2/3)
 train = data[part$Resample1,]
 test  = data[-part$Resample1,]
 ```
-<<<<<<< HEAD
 
-=======
->>>>>>> 0c941045f7c9d26943453b669473cb0e42bc79c7
 
-Die Test- und Trainingsdaten werden abgespeichert.
 
-```{r}
-write.table(train, 
-            file = "data/train.csv", 
-            row.names = FALSE)
-write.table(test, 
-            file = "data/test.csv", 
-            row.names = FALSE)
-```
-
-<<<<<<< HEAD
 ## Lineare Regression
 
 =======
->>>>>>> 0c941045f7c9d26943453b669473cb0e42bc79c7
+
 Das erste Modell, das verwendet wird, ist eine lineare Regression. Die Funktion RMSE berechnet den Root Mean Square Error, und liefert damit die Vergleichbarkeit der Güte des Modells im Vergleich zu den anderen Varianten.
 
 ```{r}
@@ -353,23 +334,21 @@ pred_r_linearModel = predict(model_r_linearModel, test)
 stats_r_linearModel = RMSE(test$price, pred_r_linearModel)
 ```
 
-<<<<<<< HEAD
+
 
 ## Random Forest
 
 Die zweite Methode ist ein Random Forest und wird einmal mit 101 Bäumen und einmal mit 501 Bäumen ausgeführt, um die Auswirkung der Erhöhung zu sehen.
-=======
-Die zweite Methode ist ein Random Forest:
->>>>>>> 0c941045f7c9d26943453b669473cb0e42bc79c7
+
 
 ```{r}
 model_r_randomForest = randomForest(price ~ ., data = train, ntrees=101)
 pred_r_randomForest = predict(model_r_randomForest, test)
 stats_r_randomForest = RMSE(test$price, pred_r_randomForest)
 
-model_r_randomForest1 = randomForest(price ~ ., data = train, ntrees=501)
-pred_r_randomForest1 = predict(model_r_randomForest, test)
-stats_r_randomForest1 = RMSE(test$price, pred_r_randomForest)
+#model_r_randomForest1 = randomForest(price ~ ., data = train, ntrees=501)
+#pred_r_randomForest1 = predict(model_r_randomForest, test)
+#stats_r_randomForest1 = RMSE(test$price, pred_r_randomForest)
 #Ergebis: RSME=0.6
 ```
 
@@ -385,40 +364,23 @@ model_r_nnet = nnet(price ~ ., data = train,
 pred_r_nnet = predict(model_r_nnet, test)
 stats_r_nnet = RMSE(test$price, pred_r_nnet)
 
-model_r_nnet1 = nnet(price ~ ., data = train, 
-                    size = 200, MaxNWts = 10000, trace = FALSE, maxit = 200)
-pred_r_nnet1 = predict(model_r_nnet, test)
-stats_r_nnet1 = RMSE(test$price, pred_r_nnet)
+#model_r_nnet1 = nnet(price ~ ., data = train, 
+#                    size = 200, MaxNWts = 10000, trace = FALSE, maxit = 200)
+#pred_r_nnet1 = predict(model_r_nnet, test)
+#stats_r_nnet1 = RMSE(test$price, pred_r_nnet)
 #Ergebnis: RMSE=1
 
-model_r_nnet2 = nnet(price ~ ., data = train, 
-                    size = 500, MaxNWts = 15000, trace = FALSE, maxit = 500)
-pred_r_nnet2 = predict(model_r_nnet, test)
-stats_r_nnet2 = RMSE(test$price, pred_r_nnet)
+#model_r_nnet2 = nnet(price ~ ., data = train, 
+#                    size = 500, MaxNWts = 15000, trace = FALSE, maxit = 500)
+#pred_r_nnet2 = predict(model_r_nnet, test)
+#stats_r_nnet2 = RMSE(test$price, pred_r_nnet)
 #Ergebnis: RSME=1
 ```
 Da der Fehler für alle drei Varianten gleich ist, wird das ursprüngliche Modell beibehalten.
 
-<<<<<<< HEAD
+
   
 ## Ergebnisse
-=======
-Als zusätzliche Features werden außerdem eine Poison-Regression als auch die Regression mittels Support Vector Machine (SVM) durchgeührt. Poisson-Regression:
-
-```{r}
-model_r_poissonReg = glm(price ~ ., data = train, family = poisson)
-pred_r_poissonReg = predict(model_r_poissonReg, test)
-stats_r_poissonReg= RMSE(test$price, pred_r_poissonReg)
-```
-
-SVM-regression:
-
-```{r}
-model_r_svm = svm(price ~ ., data = train)
-pred_r_svm = predict(model_r_svm, test)
-stats_r_svm = RMSE(test$price, pred_r_svm)
-```
->>>>>>> 0c941045f7c9d26943453b669473cb0e42bc79c7
 
 Vergleich der Modelle mittels RMSE-Werten:
 
@@ -432,7 +394,7 @@ round(res, 3)
 
 Alle Modelle weisen einen sehr hohen RMSE auf und sind daher eigentlich ungeeignet, um sichere/gute Vorhesagen zu treffen. Unter der Annahme, dass nur die hier gezeigten Methoden und Modelle zur Verfügung stehen, ist das beste Modell: `r rownames(res)[1]`.
 
-<<<<<<< HEAD
+
 Als Absicherung wurden auch die R^2-Werte für die beiden als "besten" in Frage kommenden Modelle betrachtet und auch hier gewinnt `r rownames(res)[1]`:
 ```{r}
 res = t(t(sort(c(`Lineare Regression` = summary(model_r_linearModel)$r.squared,
@@ -455,6 +417,3 @@ save(model_r_randomForest,
 
 
 
-=======
-## ...
->>>>>>> 0c941045f7c9d26943453b669473cb0e42bc79c7
