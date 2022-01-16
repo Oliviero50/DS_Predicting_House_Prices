@@ -5,7 +5,7 @@ date: "28/12/2021"
 output: 
   pdf_document:
     toc: yes
-    toc_depth: 2
+    toc_depth: 3
     number_sections: yes
 ---
 
@@ -19,13 +19,14 @@ knitr::opts_chunk$set(echo = TRUE)
 
 -   Anschließend wird das beste Modell auch als Webservice deployed.
 
+-   Die Dashboard in dashboard/dashboard.html fasst die wichtigsten Erkentnisse zusammen.
+
 # Libraries
 
 ```{r,message=FALSE, warning=FALSE}
 #install.packages("corrplot")
-#install.packages("plumber","rjson")
-##install.packages(c("cowplot", "googleway", "ggplot2", "ggrepel", 
-##"ggspatial", "libwgeom", "sf", "rnaturalearth", "rnaturalearthdata"))
+#install.packages(c("cowplot", "ggraph", "rnaturalearth", "rnaturalearthdata"))
+#install.packages("Metrics")
 library(zoo, quietly = TRUE)
 library(corrplot, quietly = TRUE)
 library(tidyverse, quietly = TRUE)
@@ -40,6 +41,7 @@ library(randomForest, quietly = TRUE)
 library(nnet, quietly = TRUE)
 library(e1071, quietly = TRUE)
 library(gbm, quietly = TRUE)
+library(Metrics, quietly = TRUE)
 ```
 
 # Datenaufbereitung
@@ -51,7 +53,7 @@ data = read_delim("data/house_sales.csv", delim=",")
 data = data %>% as_tibble()
 ```
 
-Unser Datensatz enthält keine fehlenden oder infiniten Werte .
+Unser Datensatz enthält keine fehlenden oder infiniten Werte.
 
 ```{r}
 apply(data, 2, function(x) any(is.na(x) | is.infinite(x)))
@@ -69,6 +71,8 @@ summary(data)
 
 \newpage
 
+### Überblick
+
 -   Der durschnittliche Preis eines Häuses im Datensatz beträgt 540.084 US-Dollar. Das teuerste Haus kostet 7.7 Millionen US-Dollar.
 
 -   Die Wohnfläche beträgt durchschnittlich 2.080 Quadraftfuß, was ca. 193 Quadratmeter ist.
@@ -79,7 +83,7 @@ summary(data)
 
 -   Von Mehr als 20 Tausend Häuser liegen nur `r nrow(data %>% subset(waterfront == 1))` am Wasser.
 
--   Das älteste Haus wurde im Jahr 1900 gebaut. Der durschnittliche Alter der Häuser im Datensatz beträgt `r 2021 - 1971`
+-   Das älteste Haus wurde im Jahr 1900 gebaut. Der durschnittliche Alter der Häuser im Datensatz beträgt `r 2021 - 1971` Jahre.
 
 Schauen wir uns nun weitere Statistiken graphisch an. Da das Ziel dieser Arbeit die Erstellung mehrerer Modelle für die Vorhersage der Hauspreise ist, wird der Fokus dieser visuellen Datenanalyse auf der Variable **Preis** liegen.
 
@@ -153,7 +157,7 @@ data %>%
 
 ### Preis der Häuser nach Wohnfläche und Zustand
 
-```{r out.width="75%", fig.align="center"}
+```{r out.width="75%", fig.align="center", warning=FALSE}
 data %>% 
   ggplot(aes(x=sqft_living,y=price, colour =as.factor(condition))) +
   geom_point(size=0.8) + 
@@ -178,7 +182,7 @@ data %>%
 
 ### Verteilung der Preise nach Anzahl der Stockwerke
 
-```{r out.width="75%", fig.align="center"}
+```{r out.width="75%", fig.align="center", warning=FALSE}
 data %>% 
   ggplot(aes(x=as.factor(floors), y=price)) +
   geom_boxplot(color="darkblue", fill="darkblue", alpha=0.2) + 
@@ -193,7 +197,7 @@ data %>%
 
 -   Es lässt sich erkennen, dass je mehr Stockwerke das Haus hat, desto höher der Preis ist. Interessenterweise gilt dieser Trend nur bis zu 2.5 Stockwerken. Wenn ein Haus 3 oder 3.5 Stockwerke hat, ist der Preis durschnittlich niedriger als bei Häusern mit nur 2.5 Stockwerken.
 
--   Wir können zudem viele Ausreißer nach oben beobachten. Das könnte in Vorhersagemodellen negativ auf die Performance auswirken.
+-   Wir können zudem viele Ausreißer nach oben beobachten. Das könnte sich in Vorhersagemodellen negativ auf die Performance auswirken. (RMSE wird deutlich größer sein als MAE)
 
 -   Vielleicht lässt sich eine deutlichere Tendenz bei der Anzahl der Zimmer festellen.
 
@@ -219,7 +223,7 @@ data %>%
 
 -   Es gibt einen klaren aufsteigenden Trend: Also je mehr Zimmer ein Haus hat, desto mehr wird er wahrscheinlich kosten.
 
--   Wir können zudem viele Ausreißer nach oben beobachten. Das könnte in Vorhersagemodellen negativ auf die Performance auswirken.
+-   Wir können zudem viele Ausreißer nach oben beobachten. Das könnte sich in Vorhersagemodellen negativ auf die Performance auswirken. (RMSE wird deutlich größer sein als MAE)
 
 -   Offensichtlich gibt es in unserem Datensatz einen Ausreißer, der wahrscheinlich nur eine Fehleingabe war. Ein Haus mit 33 Zimmer und Wohnfläche nur 1620 Quadratfuß. Wir entfernen es aus dem Datensatz.
 
@@ -231,7 +235,7 @@ data %>%
 data = data %>% subset(bedrooms != 33)
 ```
 
-\newpage
+------------------------------------------------------------------------
 
 ### Preis der Häuser nach Lage
 
@@ -273,72 +277,89 @@ corrplot(cor(datacor$price, datacor), method="number",diag = FALSE, tl.cex = 1,
 
 -   Wir können beobachten, dass die stärkste Korrelation mit dem Preis die Merkmale: Wohnfläche, Grade, Anzhahl der Badezimmer und Aussicht gegeben ist.
 
--   Fast keine oder nur eine sehr schwache Korrelation mit dem Preis haben die Merkmale: Zustand, Baujahr, Renovierungsjahr, ZIP-Kode.
+-   Fast keine oder nur eine sehr schwache Korrelation mit dem Preis haben die Merkmale: Zustand, Baujahr, Renovierungsjahr, ZIP-Kode, Longitude und Latitutde.
 
-# Modelierung
+\newpage
 
-Zuerst wird ein fester Seed gesetzt, sodass die Ergebnisse gleich bleiben.
+# Modellierung
+
+-   Zuerst wird ein fester Seed gesetzt, sodass die Ergebnisse gleich bleiben.
 
 ```{r}
 set.seed(1500)
 ```
+
+-   Da unsere Modele den Preis der Häuser vorhersagen sollen, handelt es sich um **Regression** und daher werden Metriken
+
+    -   **MAE** (Mean Absolute Error),
+
+    -   **RMSE** (Root Mean Squared Error) und
+
+    -   **R2** Score gemessen.
+
 ## Datenvorbereitung
-Wegen der Erkenntnisse aus der Korrelationsanalyse werden einige Spalten aus den Daten entfernt. Zusätzlich werden unnötige spalten ('id, date') entfernt. 
-Außerdem werden doppelt enthaltene Daten entfernt ('sqft_living15,sqft_lot15').
+
+-   Wegen der Erkenntnisse aus der Korrelationsanalyse werden einige Spalten aus den Daten entfernt.
+
+-   Zusätzlich werden unnötige Spalten ('id, date') entfernt.
 
 ```{r}
-data = data %>% select(-c(id,date,condition,sqft_living15,sqft_lot15,zipcode,lat,long,pricecat,sqft_lot,condition,yr_built,yr_renovated))
+data = data %>% select(-c(id,date,condition,zipcode,lat,long,pricecat,sqft_lot, condition,yr_built,yr_renovated))
 data
-```
- 
-Die Daten werden im nächsten Schritt skaliert.
 
+```
+
+Die Daten werden im nächsten Schritt skaliert. (außer der Ziel-Variable -\> Bewusste Entscheidung, die Modelle werden dadurch nicht schlechter.)
 
 ```{r}
-data = as_tibble(scale(data))
-```
- 
+orig = data
+price = data$price;
+data = scale(data %>% select(-price));
+# Wir speichern die Skalierungen, damit wir im Web Service unskalierte Daten als Input haben können
+scaled_center = attr(data, 'scaled:center')
+scaled_scale = attr(data, 'scaled:scale')
+save(scaled_center, file ="webservice/scaled_center.rda")
+save(scaled_scale, file ="webservice/scaled_scale.rda")
 
+data = cbind(data, price)
+data = as_tibble(data)
+```
 
 Die Daten werden zuerst in Test- und Trainingsdaten aufgeteilt.
 
-
 ```{r}
-part = createDataPartition(data$price, times = 2, p = 2/3)
+part = createDataPartition(data$price, times = 2, p = 4/5)
 train = data[part$Resample1,]
 test  = data[-part$Resample1,]
 ```
 
+## Linear Regression
 
+Das erste Modell, das verwendet wird, ist eine lineare Regression.
 
-## Lineare Regression
-
-=======
-
-Das erste Modell, das verwendet wird, ist eine lineare Regression. Die Funktion RMSE berechnet den Root Mean Square Error, und liefert damit die Vergleichbarkeit der Güte des Modells im Vergleich zu den anderen Varianten.
-
-```{r}
-RMSE = function(true, pred) {
-    ret <- sqrt(crossprod(true - pred)/length(pred))
-    cat("RMSE: ", round(ret, 2))
-    ret
-}
+```{r warning=FALSE}
 model_r_linearModel = lm(price ~ . , data = train)
 pred_r_linearModel = predict(model_r_linearModel, test)
-stats_r_linearModel = RMSE(test$price, pred_r_linearModel)
+stats_r_linearModel = data.frame(
+  rmse = round(rmse(test$price, pred_r_linearModel),2),
+  mae = round(mae(test$price, pred_r_linearModel),2),
+  r2_squared = round(summary(model_r_linearModel)$r.squared),2)
+stats_r_linearModel
+
 ```
-
-
 
 ## Random Forest
 
 Die zweite Methode ist ein Random Forest und wird einmal mit 101 Bäumen und einmal mit 501 Bäumen ausgeführt, um die Auswirkung der Erhöhung zu sehen.
 
-
 ```{r}
 model_r_randomForest = randomForest(price ~ ., data = train, ntrees=101)
 pred_r_randomForest = predict(model_r_randomForest, test)
-stats_r_randomForest = RMSE(test$price, pred_r_randomForest)
+stats_r_randomForest = data.frame(
+  rmse = round(rmse(test$price, pred_r_randomForest),2),
+  mae = round(mae(test$price, pred_r_randomForest),2),
+  r2_squared =round(mean(model_r_randomForest$rsq),2))
+stats_r_randomForest
 
 #model_r_randomForest1 = randomForest(price ~ ., data = train, ntrees=501)
 #pred_r_randomForest1 = predict(model_r_randomForest, test)
@@ -347,16 +368,19 @@ stats_r_randomForest = RMSE(test$price, pred_r_randomForest)
 ```
 
 Da die höhere Anzahl der Bäume keine Verbesserung bewirkt, wird das mit 101 Bäumen erzeugte Modell weiterverwendet.
-  
+
 ## Neural Network
 
-Das dritte Modell ist ein Neural Network. Wie beim Random Forest werden mehere Settings durchprobiert:
+Das dritte Modell ist ein Neural Network. Wie beim Random Forest werden mehrere Settings durchprobiert:
 
 ```{r}
 model_r_nnet = nnet(price ~ ., data = train, 
                     size = 100, MaxNWts = 10000, trace = FALSE, maxit = 100)
 pred_r_nnet = predict(model_r_nnet, test)
-stats_r_nnet = RMSE(test$price, pred_r_nnet)
+stats_r_nnet = data.frame(
+  rmse = round(rmse(test$price, pred_r_nnet),2),
+  mae = round(mae(test$price, pred_r_nnet),2),
+  r2_squared = round(cor(test$price, pred_r_nnet) ^ 2,2))
 
 #model_r_nnet1 = nnet(price ~ ., data = train, 
 #                    size = 200, MaxNWts = 10000, trace = FALSE, maxit = 200)
@@ -370,44 +394,24 @@ stats_r_nnet = RMSE(test$price, pred_r_nnet)
 #stats_r_nnet2 = RMSE(test$price, pred_r_nnet)
 #Ergebnis: RSME=1
 ```
+
 Da der Fehler für alle drei Varianten gleich ist, wird das ursprüngliche Modell beibehalten.
 
-
-  
 ## Ergebnisse
 
-Vergleich der Modelle mittels RMSE-Werten:
+Vergleich der Modelle mittels MAE, RMSE und R2 Squared Werten:
 
-```{r}
-res = t(t(sort(c(`Lineare Regression` = stats_r_linearModel,
-               `Random Forest` = stats_r_randomForest,
-               `Neural Network` = stats_r_nnet))))
-colnames(res) = "RMSE"
-round(res, 3)
-```
+|                    | MAE                          | RMSE                          | R2-Squared                          |
+|--------------------|------------------------------|-------------------------------|-------------------------------------|
+| Lineare Regression | `r stats_r_linearModel$mae`  | `r stats_r_linearModel$rmse`  | `r stats_r_linearModel$r2_squared`  |
+| Random Forest      | `r stats_r_randomForest$mae` | `r stats_r_randomForest$rmse` | `r stats_r_randomForest$r2_squared` |
+| Neural Net         | `r stats_r_nnet$mae`         | `r stats_r_nnet$rmse`         | `r stats_r_nnet$r2_squared`         |
 
-Alle Modelle weisen einen sehr hohen RMSE auf und sind daher eigentlich ungeeignet, um sichere/gute Vorhesagen zu treffen. Unter der Annahme, dass nur die hier gezeigten Methoden und Modelle zur Verfügung stehen, ist das beste Modell: `r rownames(res)[1]`.
+-   Alle Modelle weisen einen sehr hohen RMSE auf und sind daher eigentlich ungeeignet, um sichere/gute Vorhesagen zu treffen. Unter der Annahme, dass nur die hier gezeigten Daten und Modelle zur Verfügung stehen, ist das beste Modell: Random Forest.
 
-
-Als Absicherung wurden auch die R^2-Werte für die beiden als "besten" in Frage kommenden Modelle betrachtet und auch hier gewinnt `r rownames(res)[1]`:
-```{r}
-res = t(t(sort(c(`Lineare Regression` = summary(model_r_linearModel)$r.squared,
-               `Random Forest` = mean(model_r_randomForest$rsq)))))
-colnames(res) = "R-Squared"
-round(res, 3)
-```
-
-
-Das beste Modell wird abgespeichert:
+Das beste Modell wird abgespeichert:, damit es in Webservice verwendet werden kann.
 
 ```{r}
 save(model_r_randomForest,
      file = "data/models.RData")
 ```
-
-
-
-
-
-
-
