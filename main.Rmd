@@ -57,15 +57,6 @@ Unser Datensatz enthält keine fehlenden oder infiniten Werte .
 apply(data, 2, function(x) any(is.na(x) | is.infinite(x)))
 ```
 
-Wir faktorisieren Eigenschaften, wo es Sinn macht.
-
-```{r}
-#data$waterfront = as.factor(data$waterfront)
-#data$view = as.factor(data$view)
-#data$grade = as.factor(data$grade)
-#data$grade = as.factor(data$grade)
-```
-
 \newpage
 
 # Explorative Datenanalyse
@@ -101,9 +92,11 @@ data %>%
   ggplot(aes(x=yr_built, fill=as.factor(condition))) +
   geom_histogram() + 
   ggtitle("Der Zustand der Häuser nach Baujahr") + 
-  xlab("Baujahr") + ylab("Anzahl") + 
+  xlab("Baujahr") + 
+  ylab("Anzahl") + 
   scale_fill_brewer(palette = "Dark2") +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(fill="Zustand")
 ```
 
 -   Das Diagramm zeigt den Zustand der Häuser nach Baujahr.
@@ -147,7 +140,7 @@ data %>%
   ggtitle("Durschnittlicher Preis der Häuser nach Baujahr") + 
   xlab("Baujahr") + ylab("Preis") + 
   scale_fill_brewer(palette = "Dark2") +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5)) 
 ```
 
 -   Auf dem Diagramm sehen wir den durschnittlichen Verkaufspreis der Häuser nach dem Baujahr.
@@ -171,7 +164,8 @@ data %>%
   theme(plot.title = element_text(hjust = 0.5)) +
   geom_smooth(method=lm) +
   ylim(100000, 5000000) + 
-  xlim(0, 8000)
+  xlim(0, 8000) +
+  labs(color="Zustand")
 ```
 
 -   Das Diagramm zeigt den Preis der Häuser nach Wohnfläche und Zustand.
