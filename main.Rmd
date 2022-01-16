@@ -39,7 +39,11 @@ library(caret, quietly = TRUE)
 library(randomForest, quietly = TRUE)
 library(nnet, quietly = TRUE)
 library(e1071, quietly = TRUE)
+<<<<<<< HEAD
 library(gbm, quietly = TRUE)
+=======
+library(rcompanion)
+>>>>>>> 0c941045f7c9d26943453b669473cb0e42bc79c7
 ```
 
 # Datenaufbereitung
@@ -51,10 +55,19 @@ data = read_delim("data/house_sales.csv", delim=",")
 data = data %>% as_tibble()
 ```
 
-Wir entfernen einen Ausreißer, der wahrscheinlich nur eine Fehleingabe war.
+Unser Datensatz enthält keine fehlenden oder infiniten Werte .
 
 ```{r}
-data = data %>% subset(bedrooms != 33)
+apply(data, 2, function(x) any(is.na(x) | is.infinite(x)))
+```
+
+Wir faktorisieren Eigenschaften, wo es Sinn macht.
+
+```{r}
+#data$waterfront = as.factor(data$waterfront)
+#data$view = as.factor(data$view)
+#data$grade = as.factor(data$grade)
+#data$grade = as.factor(data$grade)
 ```
 
 \newpage
@@ -79,7 +92,7 @@ summary(data)
 
 -   Von Mehr als 20 Tausend Häuser liegen nur `r nrow(data %>% subset(waterfront == 1))` am Wasser.
 
--   Das älterste Haus wurde im Jahr 1900 gebaut. Der durschnittliche Alter der Häuser im Datensatz beträgt `r 2021 - 1971`
+-   Das älteste Haus wurde im Jahr 1900 gebaut. Der durschnittliche Alter der Häuser im Datensatz beträgt `r 2021 - 1971`
 
 Schauen wir uns nun weitere Statistiken graphisch an. Da das Ziel dieser Arbeit die Erstellung mehrerer Modelle für die Vorhersage der Hauspreise ist, wird der Fokus dieser visuellen Datenanalyse auf der Variable **Preis** liegen.
 
@@ -97,7 +110,9 @@ data %>%
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
--   Auf dem Diagramm ist zu sehen, dass
+-   Das Diagramm zeigt den Zustand der Häuser nach Baujahr.
+-   Es ist zu beobachten, dass die meisten Häuser im durschnittlichen Zustand sind.
+-   Zudem ist die Mehrheit der Häuser zum Kauf ein Neubau, gebaut in den letzen 50 Jahren.
 
 \newpage
 
@@ -158,13 +173,14 @@ data %>%
   ylab("Preis") + 
   scale_fill_brewer(palette = "Dark2") +
   theme(plot.title = element_text(hjust = 0.5)) +
+  geom_smooth(method=lm) +
   ylim(100000, 5000000) + 
   xlim(0, 8000)
 ```
 
 -   Das Diagramm zeigt den Preis der Häuser nach Wohnfläche und Zustand.
 -   Es lässt sich deutlich erkennen, dass mit steigender Wohnfläche auch der Preis für ein Haus steigt.
--   Leider kann man nicht deutlich sehen, ob der Zustand auch eine Rolle beim Preis des Hauses spielt. Es ist lediglich zu beobachten, dass die Mehrheit der Häuser in einem mittleren Zustand sind.
+-   Zudem lässt es sich anhand von Trendgeraden erkennen, dass der Preis für Häuser in einem besseren Zustand steiler ansteigt, als Preis für Häuser in einem schlechteren Zustand.
 
 \newpage
 
@@ -187,6 +203,8 @@ data %>%
 
 -   Es lässt sich erkennen, dass je mehr Stockwerke das Haus hat, desto höher der Preis ist. Interessenterweise gilt dieser Trend nur bis zu 2.5 Stockwerken. Wenn ein Haus 3 oder 3.5 Stockwerke hat, ist der Preis durschnittlich niedriger als bei Häusern mit nur 2.5 Stockwerken.
 
+-   Wir können zudem viele Ausreißer nach oben beobachten. Das könnte in Vorhersagemodellen negativ auf die Performance auswirken.
+
 -   Vielleicht lässt sich eine deutlichere Tendenz bei der Anzahl der Zimmer festellen.
 
 \newpage
@@ -208,7 +226,20 @@ data %>%
 ```
 
 -   Auf der Grafik können wir die Verteilung der Hauspreise nach der Anzahl der Zimmer beobachten.
+
 -   Es gibt einen klaren aufsteigenden Trend: Also je mehr Zimmer ein Haus hat, desto mehr wird er wahrscheinlich kosten.
+
+-   Wir können zudem viele Ausreißer nach oben beobachten. Das könnte in Vorhersagemodellen negativ auf die Performance auswirken.
+
+-   Offensichtlich gibt es in unserem Datensatz einen Ausreißer, der wahrscheinlich nur eine Fehleingabe war. Ein Haus mit 33 Zimmer und Wohnfläche nur 1620 Quadratfuß. Wir entfernen es aus dem Datensatz.
+
+    ```{r}
+    data %>% subset(bedrooms == 33)
+    ```
+
+```{r}
+data = data %>% subset(bedrooms != 33)
+```
 
 \newpage
 
@@ -248,7 +279,11 @@ corrplot(cor(datacor$price, datacor), method="number",diag = FALSE, tl.cex = 1,
 
 ```
 
-\newpage
+-   Als letztes schauen wir die Korrelation einzelner Merkmale mit dem Preis.
+
+-   Wir können beobachten, dass die stärkste Korrelation mit dem Preis die Merkmale: Wohnfläche, Grade, Anzhahl der Badezimmer und Aussicht gegeben ist.
+
+-   Fast keine oder nur eine sehr schwache Korrelation mit dem Preis haben die Merkmale: Zustand, Baujahr, Renovierungsjahr, ZIP-Kode.
 
 # Modelierung
 
@@ -268,19 +303,26 @@ data
  
 Die Daten werden im nächsten Schritt skaliert.
 
+<<<<<<< HEAD
 ```{r}
 data = as_tibble(scale(data))
 ```
  
 
 Die Daten werden jetzt in Test- und Trainingsdaten aufgeteilt.
+=======
+Die Daten werden zuerst in Test- und Trainingsdaten aufgeteilt.
+>>>>>>> 0c941045f7c9d26943453b669473cb0e42bc79c7
 
 ```{r}
 part = createDataPartition(data$price, times = 2, p = 2/3)
 train = data[part$Resample1,]
 test  = data[-part$Resample1,]
 ```
+<<<<<<< HEAD
 
+=======
+>>>>>>> 0c941045f7c9d26943453b669473cb0e42bc79c7
 
 Die Test- und Trainingsdaten werden abgespeichert.
 
@@ -293,8 +335,11 @@ write.table(test,
             row.names = FALSE)
 ```
 
+<<<<<<< HEAD
 ## Lineare Regression
 
+=======
+>>>>>>> 0c941045f7c9d26943453b669473cb0e42bc79c7
 Das erste Modell, das verwendet wird, ist eine lineare Regression. Die Funktion RMSE berechnet den Root Mean Square Error, und liefert damit die Vergleichbarkeit der Güte des Modells im Vergleich zu den anderen Varianten.
 
 ```{r}
@@ -308,10 +353,14 @@ pred_r_linearModel = predict(model_r_linearModel, test)
 stats_r_linearModel = RMSE(test$price, pred_r_linearModel)
 ```
 
+<<<<<<< HEAD
 
 ## Random Forest
 
 Die zweite Methode ist ein Random Forest und wird einmal mit 101 Bäumen und einmal mit 501 Bäumen ausgeführt, um die Auswirkung der Erhöhung zu sehen.
+=======
+Die zweite Methode ist ein Random Forest:
+>>>>>>> 0c941045f7c9d26943453b669473cb0e42bc79c7
 
 ```{r}
 model_r_randomForest = randomForest(price ~ ., data = train, ntrees=101)
@@ -350,8 +399,26 @@ stats_r_nnet2 = RMSE(test$price, pred_r_nnet)
 ```
 Da der Fehler für alle drei Varianten gleich ist, wird das ursprüngliche Modell beibehalten.
 
+<<<<<<< HEAD
   
 ## Ergebnisse
+=======
+Als zusätzliche Features werden außerdem eine Poison-Regression als auch die Regression mittels Support Vector Machine (SVM) durchgeührt. Poisson-Regression:
+
+```{r}
+model_r_poissonReg = glm(price ~ ., data = train, family = poisson)
+pred_r_poissonReg = predict(model_r_poissonReg, test)
+stats_r_poissonReg= RMSE(test$price, pred_r_poissonReg)
+```
+
+SVM-regression:
+
+```{r}
+model_r_svm = svm(price ~ ., data = train)
+pred_r_svm = predict(model_r_svm, test)
+stats_r_svm = RMSE(test$price, pred_r_svm)
+```
+>>>>>>> 0c941045f7c9d26943453b669473cb0e42bc79c7
 
 Vergleich der Modelle mittels RMSE-Werten:
 
@@ -365,6 +432,7 @@ round(res, 3)
 
 Alle Modelle weisen einen sehr hohen RMSE auf und sind daher eigentlich ungeeignet, um sichere/gute Vorhesagen zu treffen. Unter der Annahme, dass nur die hier gezeigten Methoden und Modelle zur Verfügung stehen, ist das beste Modell: `r rownames(res)[1]`.
 
+<<<<<<< HEAD
 Als Absicherung wurden auch die R^2-Werte für die beiden als "besten" in Frage kommenden Modelle betrachtet und auch hier gewinnt `r rownames(res)[1]`:
 ```{r}
 res = t(t(sort(c(`Lineare Regression` = summary(model_r_linearModel)$r.squared,
@@ -387,3 +455,6 @@ save(model_r_randomForest,
 
 
 
+=======
+## ...
+>>>>>>> 0c941045f7c9d26943453b669473cb0e42bc79c7
