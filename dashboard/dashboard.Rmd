@@ -87,16 +87,24 @@ Column {data-width=500}
 ### Regressionsergebnisse aus dem Training {data-width=275}
                                   RMSE
 -----------------------------  -------                                 
-Random Forest                   0.574
-Lineare Regression              0.621
-Neural Network                  0.979
+Random Forest                   198.735,2
+Lineare Regression              222.890,5
+Neural Network                  648.249,8
 -----------------------------  ------- 
 
 ###  {data-width=150}
 
 
+# Webservice Screenshots {data-orientation=rows}
 
+## Webservice
+**Screenshots aus dem Test**
 
+## Screenshot Vorhersage 1
+![](../webservice/API_prediction1.png)  
+
+## Screenshot Vorhersage 2
+![](../webservice/API_prediction2.png)  
 
 
 
