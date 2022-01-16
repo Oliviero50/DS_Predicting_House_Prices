@@ -314,7 +314,7 @@ orig = data
 data = orig
 price = data$price;
 data = scale(data %>% select(-price));
-# Wir speichern die Skalierungen, damit wir im Web Service unskalierte Daten als Input haben können
+# Skalierungen speichern, damit im Web Service unskalierte Daten als Input verwendet werden können
 scaled_center = attr(data, 'scaled:center')
 scaled_scale = attr(data, 'scaled:scale')
 save(scaled_center, file ="webservice/scaled_center.rda")
@@ -367,7 +367,7 @@ stats_r_randomForest
 #model_r_randomForest1 = randomForest(price ~ ., data = train, ntrees=501)
 #pred_r_randomForest1 = predict(model_r_randomForest, test)
 #stats_r_randomForest1 = RMSE(test$price, pred_r_randomForest)
-#Ergebis: RSME=0.6
+#Ergebis: RSME=198735.2
 ```
 
 Da die höhere Anzahl der Bäume keine Verbesserung bewirkt, wird das mit 101 Bäumen erzeugte Modell weiterverwendet.
@@ -384,22 +384,22 @@ stats_r_nnet = data.frame(
   rmse = rmse(test$price, pred_r_nnet),
   mae = mae(test$price, pred_r_nnet),
   mape = round(mape(test$price, pred_r_nnet),2)*100,
-  r2_squared = round(cor(test$price, pred_r_nnet) ^ 2,2))
+  r2_squared = round(1 - (sum(model_r_nnet$residuals^2)) / sum((train$price-mean(train$price))^2)),2)
 stats_r_nnet
 #model_r_nnet1 = nnet(price ~ ., data = train, 
 #                    size = 200, MaxNWts = 10000, trace = FALSE, maxit = 200)
 #pred_r_nnet1 = predict(model_r_nnet, test)
 #stats_r_nnet1 = RMSE(test$price, pred_r_nnet)
-#Ergebnis: RMSE=1
+#Ergebnis: RSME=648249.8
 
 #model_r_nnet2 = nnet(price ~ ., data = train, 
 #                    size = 500, MaxNWts = 15000, trace = FALSE, maxit = 500)
 #pred_r_nnet2 = predict(model_r_nnet, test)
 #stats_r_nnet2 = RMSE(test$price, pred_r_nnet)
-#Ergebnis: RSME=1
+#Ergebnis: RSME=648249.8
 ```
 
-Da der Fehler für alle drei Varianten gleich ist, wird das ursprüngliche Modell beibehalten.
+Da der RMSE für alle drei Varianten gleich ist, wird das ursprüngliche Modell beibehalten.
 
 ## Ergebnisse
 
