@@ -280,7 +280,7 @@ corrplot(cor(datacor$price, datacor), method="number",diag = FALSE, tl.cex = 1,
 Zuerst wird ein fester Seed gesetzt, sodass die Ergebnisse gleich bleiben.
 
 ```{r}
-set.seed(3000)
+set.seed(1500)
 ```
 ## Datenvorbereitung
 Wegen der Erkenntnisse aus der Korrelationsanalyse werden einige Spalten aus den Daten entfernt. Zusätzlich werden unnötige spalten ('id, date') entfernt. 
