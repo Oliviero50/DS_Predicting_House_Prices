@@ -227,15 +227,13 @@ data %>%
 
 -   Offensichtlich gibt es in unserem Datensatz einen Ausreißer, der wahrscheinlich nur eine Fehleingabe war. Ein Haus mit 33 Zimmer und Wohnfläche nur 1620 Quadratfuß. Wir entfernen es aus dem Datensatz.
 
-    ```{r}
-    data %>% subset(bedrooms == 33)
-    ```
-
 ```{r}
 data = data %>% subset(bedrooms != 33)
 ```
 
 ------------------------------------------------------------------------
+
+\newpage
 
 ### Preis der Häuser nach Lage
 
@@ -293,7 +291,9 @@ set.seed(1500)
 
     -   **MAE** (Mean Absolute Error),
 
-    -   **RMSE** (Root Mean Squared Error) und
+    -   **RMSE** (Root Mean Squared Error),
+
+    -   **MAPE** (Mean Absolute Percentage Error),
 
     -   **R2** Score gemessen.
 
@@ -305,14 +305,13 @@ set.seed(1500)
 
 ```{r}
 data = data %>% select(-c(id,date,condition,zipcode,lat,long,pricecat,sqft_lot, condition,yr_built,yr_renovated))
-data
-
 ```
 
-Die Daten werden im nächsten Schritt skaliert. (außer der Ziel-Variable -\> Bewusste Entscheidung, die Modelle werden dadurch nicht schlechter.)
+Die Daten werden im nächsten Schritt skaliert. (außer der Ziel-Variable -\> Bewusste Entscheidung, die Modelle werden dadurch nicht schlechter, und wir müssen MAE, RSME, sowie API Antworten nicht zurückskalieren.)
 
 ```{r}
 orig = data
+data = orig
 price = data$price;
 data = scale(data %>% select(-price));
 # Wir speichern die Skalierungen, damit wir im Web Service unskalierte Daten als Input haben können
@@ -333,6 +332,8 @@ train = data[part$Resample1,]
 test  = data[-part$Resample1,]
 ```
 
+\newpage
+
 ## Linear Regression
 
 Das erste Modell, das verwendet wird, ist eine lineare Regression.
@@ -341,9 +342,10 @@ Das erste Modell, das verwendet wird, ist eine lineare Regression.
 model_r_linearModel = lm(price ~ . , data = train)
 pred_r_linearModel = predict(model_r_linearModel, test)
 stats_r_linearModel = data.frame(
-  rmse = round(rmse(test$price, pred_r_linearModel),2),
-  mae = round(mae(test$price, pred_r_linearModel),2),
-  r2_squared = round(summary(model_r_linearModel)$r.squared),2)
+  rmse = rmse(test$price, pred_r_linearModel),
+  mae = mae(test$price, pred_r_linearModel),
+  mape = round(mape(test$price, pred_r_linearModel),2)*100,
+  r2_squared = round(summary(model_r_linearModel)$r.squared,2))
 stats_r_linearModel
 
 ```
@@ -356,8 +358,9 @@ Die zweite Methode ist ein Random Forest und wird einmal mit 101 Bäumen und ein
 model_r_randomForest = randomForest(price ~ ., data = train, ntrees=101)
 pred_r_randomForest = predict(model_r_randomForest, test)
 stats_r_randomForest = data.frame(
-  rmse = round(rmse(test$price, pred_r_randomForest),2),
-  mae = round(mae(test$price, pred_r_randomForest),2),
+  rmse = rmse(test$price, pred_r_randomForest),
+  mae = mae(test$price, pred_r_randomForest),
+  mape = round(mape(test$price, pred_r_randomForest),2)*100,
   r2_squared =round(mean(model_r_randomForest$rsq),2))
 stats_r_randomForest
 
@@ -378,10 +381,11 @@ model_r_nnet = nnet(price ~ ., data = train,
                     size = 100, MaxNWts = 10000, trace = FALSE, maxit = 100)
 pred_r_nnet = predict(model_r_nnet, test)
 stats_r_nnet = data.frame(
-  rmse = round(rmse(test$price, pred_r_nnet),2),
-  mae = round(mae(test$price, pred_r_nnet),2),
+  rmse = rmse(test$price, pred_r_nnet),
+  mae = mae(test$price, pred_r_nnet),
+  mape = round(mape(test$price, pred_r_nnet),2)*100,
   r2_squared = round(cor(test$price, pred_r_nnet) ^ 2,2))
-
+stats_r_nnet
 #model_r_nnet1 = nnet(price ~ ., data = train, 
 #                    size = 200, MaxNWts = 10000, trace = FALSE, maxit = 200)
 #pred_r_nnet1 = predict(model_r_nnet, test)
@@ -401,17 +405,23 @@ Da der Fehler für alle drei Varianten gleich ist, wird das ursprüngliche Model
 
 Vergleich der Modelle mittels MAE, RMSE und R2 Squared Werten:
 
-|                    | MAE                          | RMSE                          | R2-Squared                          |
-|--------------------|------------------------------|-------------------------------|-------------------------------------|
-| Lineare Regression | `r stats_r_linearModel$mae`  | `r stats_r_linearModel$rmse`  | `r stats_r_linearModel$r2_squared`  |
-| Random Forest      | `r stats_r_randomForest$mae` | `r stats_r_randomForest$rmse` | `r stats_r_randomForest$r2_squared` |
-| Neural Net         | `r stats_r_nnet$mae`         | `r stats_r_nnet$rmse`         | `r stats_r_nnet$r2_squared`         |
+|                    | MAE                          | MAPE                          | RMSE                          | R2-Squared                          |
+|--------------------|------------------------------|-------------------------------|-------------------------------|-------------------------------------|
+| Random Forest      | `r stats_r_randomForest$mae` | `r stats_r_randomForest$mape` | `r stats_r_randomForest$rmse` | `r stats_r_randomForest$r2_squared` |
+| Lineare Regression | `r stats_r_linearModel$mae`  | `r stats_r_linearModel$mape`  | `r stats_r_linearModel$rmse`  | `r stats_r_linearModel$r2_squared`  |
+| Neural Net         | `r stats_r_nnet$mae`         | `r stats_r_nnet$mape`         | `r stats_r_nnet$rmse`         | `r stats_r_nnet$r2_squared`         |
 
--   Alle Modelle weisen einen sehr hohen RMSE auf und sind daher eigentlich ungeeignet, um sichere/gute Vorhesagen zu treffen. Unter der Annahme, dass nur die hier gezeigten Daten und Modelle zur Verfügung stehen, ist das beste Modell: Random Forest.
+-   Der mittlere absolute Fehler ist bei allen Modellen ziemlich groß, bei randomForest aber nur um ca. 190.000 Tausend US-Dollar- also die mittlere Höhe der Abweichung der Vorhersage von der Beobachtung. Bei einem durschnittlichen Preis der Häuser von 540.084 Tausend US-Dollar stellt es eine ziemlich große Abweichung dar (28%)
+
+-   Wie erwartet, verursachen viele (Preis-)Ausreißer einen viel höheren RMSE als MAE. Die Modelle könnten eventuell verbessern werden, wenn mehrere Faktoren in Betracht gezogen wären.
+
+-   Das beste Modell RandomForest erklärt mehr als 70% der Streuung (R2 Squared), was ziemlich gut ist.
+
+-   Unter der Annahme, dass nur die hier gezeigten Daten und Modelle zur Verfügung stehen, ist das beste Modell: Random Forest.
 
 Das beste Modell wird abgespeichert:, damit es in Webservice verwendet werden kann.
 
 ```{r}
 save(model_r_randomForest,
-     file = "data/models.RData")
+     file = "webservice/model.rda")
 ```
