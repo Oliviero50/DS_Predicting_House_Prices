@@ -35,7 +35,7 @@ library(dplyr)
 -  Dokumentation und Einhaltung der Projekt-Richtlinien [10%]
     
 
-# Grafiken
+# Datenvisualisierung
 
 Column {data-width=500}
 -----------------------------------------------------------------------
@@ -61,7 +61,7 @@ Column {data-width=500}
 ![](plot2.png)                                 
 
 
-# Projekt {data-orientation=rows}
+# Modelle {data-orientation=rows}
 Column {data-width=500}
 -----------------------------------------------------------------------
 ### Vorgangsweise
@@ -70,43 +70,68 @@ Column {data-width=500}
   
 - Es wurde ein Datensatz mit unnatürlich hoher Anzahl an Zimmer (33) und nicht dazu passendem Preis entfernt, da es sich höchstwahrscheinlich um einen Eingabefehler handelt.
   
-- Es wurde eine Korrelationsanalyse mittels einer Grafik durchgeführt, anhand derer einige Spalten verworfen wurden, da sie Kopien anderer Spalten darstellen oder nur sehr geringen Beitrag zur Erklärung von 'price' leisten: 'id, date, condition, yr_built, yr_renovated, zipcode, long, lat, sqft_living15, sqft_lot, sqft_lot15'
+- Es wurde eine Korrelationsanalyse mittels einer Grafik durchgeführt, anhand derer einige Spalten verworfen wurden, da sie Kopien anderer Spalten darstellen oder nur sehr geringen Beitrag zur Erklärung von 'price' leisten: 'id, date, condition, yr_built, yr_renovated, zipcode, long, lat
   
 
-- Die Daten wurden im nächsten Schritt in Trainings- und Testdaten unterteilt. Danach wurden 3 Modelle erstellt, die den Preis der Häuser anhand der anderen Variablen hervorsagen sollen. Es wurde ein Lineares-Regressionsmodell, ein Random-Forest-Modell und ein Neurales Netz verwendet. Als zusätzliche Features wurden zusätzlich eine Poisson Regression sowie eine Regression mittels Support Vector Machine (SVM) durchgeührt.
+- Die Daten wurden im nächsten Schritt in Trainings- und Testdaten unterteilt. Danach wurden 3 Modelle erstellt, die den Preis der Häuser anhand der anderen Variablen hervorsagen sollen. Es wurde ein Lineares-Regressionsmodell, ein Random-Forest-Modell und ein Neurales Netz verwendet.
 
-- Anhand der Testdaten wurde der Root Mean Square Error (Wurzel des erwarteten quadratischen Abstands) verglichen.
+- Anhand der Testdaten wurden der Root Mean Square Error (Wurzel des erwarteten quadratischen Abstands), *MAE* (Mittlere Absolute Fehler), *R2* Score, sowie *MAPE* (Mittlerer absoluter prozentualer Fehler) verglichen.
   
 - Das beste Modell anhand des RMSE ist für diesen Datensatz das Random-Forest-Modell. Trotzdem muss dazu gesagt werden, dass wegen des sehr hohen RSMEs alle drei Modelle als schlecht einzustufen sind.
 
 Column {data-width=500}
 -----------------------------------------------------------------------
 
-###  {data-width=150}
+### Regressionsergebnisse aus dem Training {data-width=250}
+                                  RMSE       MAE      MAPE      R2
+-----------------------------  -------     -------  -------   -------                                  
+Random Forest                   198.735    125.189      26      0.71
+Lineare Regression              222.890    150.094      31      0.6
+Neural Network                  648.249    539.0219    100    -2.14
+-----------------------------  -------     -------  -------   ------- 
 
-### Regressionsergebnisse aus dem Training {data-width=275}
-                                  RMSE
------------------------------  -------                                 
-Random Forest                   198.735,2
-Lineare Regression              222.890,5
-Neural Network                  648.249,8
------------------------------  ------- 
+###  {data-width=250}
+![](plot6.png) 
 
-###  {data-width=150}
+# Webservice {data-orientation=rows}
 
+Column {data-width=500}
+-----------------------------------------------------------------------
+### Webservice{data-width=500}
+* Das beste Modell (Random Forest mit 101 Bäumen) wurde anschließend als Web service deployed.
+* In Screenshots unten kann man 2 Test API Calls sehen:
+  * Ein großes Haus mit vielen Zimmer, im guten Zustand und Grade mit Seeblick würde laut unserem Modell mehr als 2 Millionen US-Dollar kosten.
+  * Ein kleiners Haus mit nur 2 Zimmer, im schlechten Zustand und Grade, mit keinem Seeblick würde laut unserem Modell weniger als 300 Tausend US-Dollar kosten.
+* Anleitung zum Starten von Web Service:
+  1. Starten Sie eine R session, und exekutieren Sie Kommandos in server_start.R
+  2. Dadurch wird ein Web Service gestartet mit einem API Endpoint : POST http://127.0.0.1:8080/predict_price
+  3. Starten Sie eine weitere R Session und probieren Sie die API aus, indem Sie Kommandos aus client_test.R exekutieren.
 
-# Webservice Screenshots {data-orientation=rows}
-
-## Webservice
-**Screenshots aus dem Test**
-
-## Screenshot Vorhersage 1
+  
+Column {data-width=500}
+-----------------------------------------------------------------------
+### Screenshot Vorhersage 1
 ![](../webservice/API_prediction1.png)  
 
-## Screenshot Vorhersage 2
+### Screenshot Vorhersage 2
 ![](../webservice/API_prediction2.png)  
 
+# Interaktive Grafiken {data-orientation=rows}
 
+Column {data-width=500}
+-----------------------------------------------------------------------
+### Interaktive Grafiken
+* Als zusätzliche Features wurde 2 interaktive Grafiken eingebaut (die als ShinyApp im Ordner /interactive liegen)
+* Mit der ersten Grafik können Häuser dynamisch, anhand ihrer Preisklassen auf einer geograpfisch Karte filriert werden.
+* Mit der zweiten Grafik können Korrelationen der dynamisch ausgewählten Merkmale der Häuser beobachtet werden. (Gut geeignet für explorative Datenanalyse)
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+### Screenshot Interaktive Grafik 1
+![](int1.png)  
+
+### Screenshot Interaktive Grafik 2
+![](int2.png)  
 
 
 

@@ -275,6 +275,8 @@ corrplot(cor(datacor$price, datacor), method="number",diag = FALSE, tl.cex = 1,
 
 -   Wir können beobachten, dass die stärkste Korrelation mit dem Preis die Merkmale: Wohnfläche, Grade, Anzhahl der Badezimmer und Aussicht gegeben ist.
 
+-   Die durschnittliche Wohnfläche der nächsten 15 Häuser weist auch eine mittlere Korrelation mit dem Preis auf. (sqft_living15)
+
 -   Fast keine oder nur eine sehr schwache Korrelation mit dem Preis haben die Merkmale: Zustand, Baujahr, Renovierungsjahr, ZIP-Kode, Longitude und Latitutde.
 
 \newpage
@@ -304,7 +306,9 @@ set.seed(1500)
 -   Zusätzlich werden unnötige Spalten ('id, date') entfernt.
 
 ```{r}
-data = data %>% select(-c(id,date,condition,zipcode,lat,long,pricecat,sqft_lot, condition,yr_built,yr_renovated))
+data = data %>% 
+  select(-c(id,date,condition,zipcode,lat,long,
+            pricecat,sqft_lot, condition,yr_built,yr_renovated))
 ```
 
 Die Daten werden im nächsten Schritt skaliert. (außer der Ziel-Variable -\> Bewusste Entscheidung, die Modelle werden dadurch nicht schlechter, und wir müssen MAE, RSME, sowie API Antworten nicht zurückskalieren.)
@@ -314,7 +318,8 @@ orig = data
 data = orig
 price = data$price;
 data = scale(data %>% select(-price));
-# Skalierungen speichern, damit im Web Service unskalierte Daten als Input verwendet werden können
+# Skalierungen speichern, damit im Web Service 
+# unskalierte Daten als Input verwendet werden können
 scaled_center = attr(data, 'scaled:center')
 scaled_scale = attr(data, 'scaled:scale')
 save(scaled_center, file ="webservice/scaled_center.rda")
@@ -384,7 +389,7 @@ stats_r_nnet = data.frame(
   rmse = rmse(test$price, pred_r_nnet),
   mae = mae(test$price, pred_r_nnet),
   mape = round(mape(test$price, pred_r_nnet),2)*100,
-  r2_squared = round(1 - (sum(model_r_nnet$residuals^2)) / sum((train$price-mean(train$price))^2)),2)
+  r2_squared = round(1 - (sum(model_r_nnet$residuals^2)) / sum((train$price-mean(train$price))^2),2))
 stats_r_nnet
 #model_r_nnet1 = nnet(price ~ ., data = train, 
 #                    size = 200, MaxNWts = 10000, trace = FALSE, maxit = 200)
@@ -411,17 +416,29 @@ Vergleich der Modelle mittels MAE, RMSE und R2 Squared Werten:
 | Lineare Regression | `r stats_r_linearModel$mae`  | `r stats_r_linearModel$mape`  | `r stats_r_linearModel$rmse`  | `r stats_r_linearModel$r2_squared`  |
 | Neural Net         | `r stats_r_nnet$mae`         | `r stats_r_nnet$mape`         | `r stats_r_nnet$rmse`         | `r stats_r_nnet$r2_squared`         |
 
--   Der mittlere absolute Fehler ist bei allen Modellen ziemlich groß, bei randomForest aber nur um ca. 190.000 Tausend US-Dollar- also die mittlere Höhe der Abweichung der Vorhersage von der Beobachtung. Bei einem durschnittlichen Preis der Häuser von 540.084 Tausend US-Dollar stellt es eine ziemlich große Abweichung dar (28%)
+-   Der mittlere absolute Fehler, also die mittlere Höhe der Abweichung der Vorhersage von der Beobachtung, ist bei allen Modellen ziemlich groß, bei randomForest beträgt er aber nur ca. 125.000 Tausend US-Dollar - was eine mittlere Abweichung von tatsächlichen Werten von 26% darstellt.
 
--   Wie erwartet, verursachen viele (Preis-)Ausreißer einen viel höheren RMSE als MAE. Die Modelle könnten eventuell verbessern werden, wenn mehrere Faktoren in Betracht gezogen wären.
+-   Bei einem durschnittlichen Preis der Häuser von 540.084 Tausend US-Dollar sind diese Abweichungen leider ziemlich groß.
 
--   Das beste Modell RandomForest erklärt mehr als 70% der Streuung (R2 Squared), was ziemlich gut ist.
+-   Wie erwartet, verursachen viele (Preis-)Ausreißer einen viel höheren RMSE als MAE. Die Modelle könnten eventuell verbessern werden, wenn mehrere Faktoren in Betracht gezogen wären. (Entfernen der Ausreißer von Datensatz wäre auch eine Möglichkeit)
 
--   Unter der Annahme, dass nur die hier gezeigten Daten und Modelle zur Verfügung stehen, ist das beste Modell: Random Forest.
+-   Das beste Modell RandomForest erklärt aber mehr als 70% der Streuung (R2 Squared), was ziemlich gut ist.
 
-Das beste Modell wird abgespeichert:, damit es in Webservice verwendet werden kann.
+-   Unter der Annahme, dass nur die hier gezeigten Daten und Modelle zur Verfügung stehen, ist das beste Modell: Random Forest mit 101 Bäumen.
+
+Das beste Modell wird abgespeichert:, damit es später in Webservice verwendet werden kann.
 
 ```{r}
 save(model_r_randomForest,
      file = "webservice/model.rda")
+```
+
+Als letztes schauen wir uns noch die Vorhersagen von Random Forest graphisch an:
+
+```{r}
+ggplot(test, aes(x=pred_r_randomForest, y= price)) +
+  geom_point(size=0.5, color='darkblue') +
+  geom_abline(intercept=0, slope=1) +
+  labs(x='Vorhergesagte Preise', y='Reale Preise', 
+       title='Vorhergesagte vs. Reale Preise RandomForest') 
 ```

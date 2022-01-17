@@ -18,7 +18,7 @@ as.double(content(POST("http://127.0.0.1:8080/predict_price", body = str, encode
 
 # Beispiel 2
 
-# Ein kleiners Haus mit nur 2 Zimmer, im schlechten Zustand und Grade, Altbau
+# Ein kleiners Haus mit nur 2 Zimmer, im schlechten Zustand und Grade
 test2 = data.frame(bedrooms = 2, bathrooms = 1, sqft_living = 1000, 
                    floors = 1, waterfront = 0, view = 0,
                    grade = 3, sqft_above = 1100, sqft_basement = 0, sqft_living15 = 1000, sqft_lot15 = 1100)

@@ -4,7 +4,7 @@ library(ggplot2)
 
 data = read_delim("../../data/house_sales.csv", delim=",")
 data = data %>% as_tibble()
-temp=colnames(data %>% select(-c(id,date,price,lat,long,zipcode,yr_built,yr_renovated)))
+temp=colnames(data %>% select(-c(id,date,lat,long,zipcode,yr_renovated)))
 
 
 # Eingaben
